@@ -1,6 +1,6 @@
 {
   "name": "nativescript-theme-core",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Telerik NativeScript Core Theme",
   "author": "Telerik <support@telerik.com>",
   "homepage": "https://www.nativescript.org",
@@ -10,6 +10,7 @@
     "url": "https://github.com/NativeScript/theme"
   },
   "scripts": {
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+	"uninstall": "node scripts/uninstall.js"
   }
 }

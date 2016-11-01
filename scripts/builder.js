@@ -21,7 +21,9 @@ fs.mkdirSync("nativescript-theme-core/fonts");
 fs.mkdirSync("nativescript-theme-core/scripts");
 
 
-console.log("Building the Deployment files...");
+var version = getVersion();
+var versionPlaceholder = "__VERSION__";
+console.log("Building the Deployment files for v" + version + "...");
 
 // Create CSS from SCSS
 createCSSFromSCSS();
@@ -37,6 +39,9 @@ copyFile("./nativescript-theme-core.json", "./nativescript-theme-core/package.js
 
 // Copy our Post Install Script
 copyFile("./scripts/postinstall.js", "./nativescript-theme-core/scripts/postinstall.js");
+
+// Copy our Un-install 
+copyFile("./scripts/uninstall.js", "./nativescript-theme-core/scripts/uninstall.js");
 
 // Copy our Readme
 copyFile("./nativescript-theme-core.md", "./nativescript-theme-core/readme.md");
@@ -101,7 +106,14 @@ function copySCSS() {
             }
         }
 
-        fs.writeFileSync(out, fs.readFileSync(sassFiles[i]));
+        if (sassFiles[i].indexOf('./app/core.') > -1) {
+            // print correct version on main files
+            var scss = fs.readFileSync(sassFiles[i], { encoding: 'utf8' });
+            scss = printVersion(scss);
+            fs.writeFileSync(out, scss, 'utf8');
+        } else {
+            fs.writeFileSync(out, fs.readFileSync(sassFiles[i]));
+        }      
     }
 }
 
@@ -111,7 +123,7 @@ function copySCSS() {
  * Create all the CSS from SCSS files
  */
 function createCSSFromSCSS() {
-
+    
     var sassFilesPath = './app/**/*.scss';
     var sassImportPaths = [
         './app/',
@@ -147,13 +159,30 @@ function parseSass(sassFile, importPaths) {
     outputFile += sassFile.substring(offset);
     var cssFilePath = outputFile.replace('.scss', '.css');
 
-    var output = sass.renderSync({
+    // var output = sass.renderSync({
+    var output = sass.render({
         data: sassFileContent,
         includePaths: importPaths,
         outFile: cssFilePath,
         outputStyle: 'compressed'
+    }, function (error, result) {
+        if (error) {
+            console.log(error.status);
+            console.log(error.column);
+            console.log(error.message);
+            console.log(error.line);
+        } else {
+            var css = result.css.toString();
+            // correct version tag
+            css = printVersion(css);
+            // uncomment to debug builds
+            // console.log(css);
+            fs.writeFileSync(cssFilePath, css, 'utf8');
+
+            // if build stats are ever desired            
+            // console.log(result.stats);
+        }
     });
-    fs.writeFileSync(cssFilePath, output.css, 'utf8');
 }
 
 // ----------------------------------------------------------------------
@@ -185,4 +214,19 @@ function deleteFolderRecursive(path) {
  */
 function copyFile(src, dest) {
     fs.writeFileSync(dest, fs.readFileSync(src));
+}
+
+/**
+ * Print correct version
+ */
+function printVersion(css) {
+    return css.replace(versionPlaceholder, 'v' + version);
+}
+
+/**
+ * Get version from package
+ */
+function getVersion() {
+    var packageJSON = require('../package.json');
+    return packageJSON ? packageJSON.version : null;
 }
